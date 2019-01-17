@@ -3,7 +3,7 @@ class ExercisesController < ApplicationController
     id = params[ :id ]
 
     if id.present?
-      exercise = Exercise.find( id )
+      exercise = Exercise.find( id ) rescue nil
 
       if exercise.present?
         render_result(
@@ -22,6 +22,15 @@ class ExercisesController < ApplicationController
           }
         )
       end
+    else
+      render_error(
+        {
+          type: 'missing_parameter_error',
+          status_code: '400',
+          message: 'The exercise id parameter is required.'
+        }
+      )
+    end
   end
 
   def query

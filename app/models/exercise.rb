@@ -9,6 +9,6 @@ class Exercise < ActiveRecord::Base
   #----------------------------------------------------------------------------
   # associations
 
-  has_many :workouts, through: :workout_exercises, source: :workouts
   has_many :workout_exercises
+  has_many :workouts, through: :workout_exercises, source: :workouts
 end

@@ -3,14 +3,15 @@ class WorkoutsController < ApplicationController
     id = params[ :id ]
 
     if id.present?
-      workout = Workout.find( id )
+      workout = Workout.find( id ) rescue nil
 
       if workout.present?
         render_result(
           workout,
           {
             name: 'workouts',
-            type_name: 'workout'
+            type_name: 'workout',
+            include: 'exercises'
           }
         )
       else
@@ -38,16 +39,19 @@ class WorkoutsController < ApplicationController
       user = User.find( workout_params[ :user_id ] )
 
       if user.present?
-        workout = Workout.new( workout_params )
+        workout = Workout.new( workout_params.except( :exercises ) )
 
         if workout.save
+          if workout_params[ :exercises ].present?
+            add_workout_exercises( workout )
+          end
 
-          # check for workout_params[ :exercises ], if present, loop through and create workoutExcersize for each
           render_result(
             workout,
             {
               name: 'workouts',
-              type_name: 'workout'
+              type_name: 'workout',
+              include: 'exercises'
             }
           )
         else
@@ -87,16 +91,16 @@ class WorkoutsController < ApplicationController
         add_workout_exercises( workout )
       end
 
-      if workout.update( workout_params )
-
-      # how are we going to handle including exercises in this?
-      render_result(
-        workout,
-        {
-          name: 'workouts',
-          type_name: 'workout'
-        }
-      )
+      if workout.update( workout_params.except( :exercises ) )
+        render_result(
+          workout,
+          {
+            name: 'workouts',
+            type_name: 'workout',
+            include: 'exercises'
+          }
+        )
+      end
     else
       render_error(
         {
@@ -108,14 +112,56 @@ class WorkoutsController < ApplicationController
     end
   end
 
+  def query
+    user_id = params[ :user_id ]
+
+    if user_id.present?
+      user = User.find( user_id ) rescue nil
+
+      if user.present?
+        workouts = user.workouts
+
+        workouts.each do | workout |
+          exercises = workout.exercises
+        end
+
+        render_result(
+          workouts,
+          {
+            name: 'workouts',
+            type_name: 'workout',
+            count: workouts.count,
+            include: 'exercises'
+          }
+        )
+      else
+        render_error(
+          {
+            type: 'not_found_error',
+            status_code: '404',
+            message: 'User with that user_id could not be found.'
+          }
+        )
+      end
+    else
+      render_error(
+        {
+          type: 'missing_parameter_error',
+          status_code: '400',
+          message: 'The user_id parameter is required.'
+        }
+      )
+    end
+  end
+
   private
 
   def add_workout_exercises( workout )
     exercises_params = workout_params.delete( :exercises )
 
     exercises_params.each do | exercise |
-      workout_exercise = WorkoutExcersize.create(
-        workout_id: workout.id, exercise_id: exercise[ :id ], user_id: workout_params[ :user_id ]
+      WorkoutExercise.create(
+        workout_id: workout.id, exercise_id: exercise, user_id: workout_params[ :user_id ]
       )
     end
   end
@@ -126,9 +172,7 @@ class WorkoutsController < ApplicationController
       :description,
       :id,
       :user_id,
-      exercises: [
-        :id
-      ]
+      exercises: []
     )
   end
 end

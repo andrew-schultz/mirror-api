@@ -13,6 +13,6 @@ class Workout < ActiveRecord::Base
   # associations
 
   belongs_to :user
-  has_many   :exercises, through: :workout_exercises, source: :exercises
   has_many   :workout_exercises
+  has_many   :exercises, through: :workout_exercises, source: :exercise
 end

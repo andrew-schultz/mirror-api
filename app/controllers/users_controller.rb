@@ -1,21 +1,37 @@
 class UsersController < ApplicationController
 
   def write
-    user = User.find_by( email: user_params[ 'email' ] )
+    if user_params[ :email ].present?
+      user = User.find_by( email: user_params[ 'email' ] ) rescue nil
 
-    if user.present?
-      user.update( user_params )
+      unless user.present?
+        user = User.create( user_params )
+
+        render_result(
+          user,
+          {
+            name: 'users',
+            type_name: 'user'
+          }
+        )
+      else
+        render_error(
+          {
+            type: 'invalid_parameter_error',
+            status_code: '400',
+            message: 'The an account with this email already exists'
+          }
+        )
+      end
     else
-      user = User.create( user_params )
+      render_error(
+        {
+          type: 'missing_parameter_error',
+          status_code: '400',
+          message: 'The email parameter is required.'
+        }
+      )
     end
-
-    render_result(
-      user,
-      {
-        name: 'users',
-        type_name: 'user'
-      }
-    )
   end
 
   def update
@@ -54,7 +70,7 @@ class UsersController < ApplicationController
 
   def read
     if params[ :id ].present?
-      user = User.find( params[ :id ] )
+      user = User.find( params[ :id ] ) rescue nil
 
       if user.present?
         render_result(
