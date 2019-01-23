@@ -12,17 +12,11 @@ module RendersResults
     end
 
     if options[ :include ].present?
-      parsed_entities = []
+      entity = extract_includes( options[ :include ], entity )
+    end
 
-      entity.each do | resource |
-        included_resources = resource.send( options[ :include ] ).to_a
-        resource_json = resource.to_json
-        parsed_resource = JSON.parse( resource_json )
-        parsed_resource[ options[ :include ] ] = included_resources
-        parsed_entities.push( parsed_resource )
-      end
-
-      entity = parsed_entities
+    if options[ :token ].present?
+      entity = include_token( options[ :token ], entity )
     end
 
     result_response[ options[ :name ] ] = entity
@@ -38,6 +32,35 @@ module RendersResults
     }
 
     render status: error[ :status_code ], json: error_response
+  end
+
+  private
+
+  def extract_includes( include_param, entity )
+    parsed_entities = []
+
+    entity.each do | resource |
+      included_resources = resource.send( include_param ).to_a
+      resource_json = resource.to_json
+      parsed_resource = JSON.parse( resource_json )
+      parsed_resource[ include_param ] = included_resources
+      parsed_entities.push( parsed_resource )
+    end
+
+    parsed_entities
+  end
+
+  def include_token( token, entity )
+    parsed_entities = []
+
+    entity.each do | resource |
+      resource_json = resource.to_json
+      parsed_resource = JSON.parse( resource_json )
+      parsed_resource[ :token ] = token
+      parsed_entities.push( parsed_resource )
+    end
+
+    parsed_entities
   end
 
 end

@@ -43,7 +43,7 @@ class WorkoutsController < ApplicationController
 
         if workout.save
           if workout_params[ :exercises ].present?
-            add_workout_exercises( workout )
+            workout.add_workout_exercises( workout_params )
           end
 
           render_result(
@@ -88,7 +88,7 @@ class WorkoutsController < ApplicationController
       workout = Workout.find( params[ :id ] )
 
       if workout_params[ :exercises ].present?
-        add_workout_exercises( workout )
+        workout.add_workout_exercises( workout_params )
       end
 
       if workout.update( workout_params.except( :exercises ) )
@@ -116,30 +116,43 @@ class WorkoutsController < ApplicationController
     user_id = params[ :user_id ]
 
     if user_id.present?
-      user = User.find( user_id ) rescue nil
+      auth_object = Authorization.new( request )
+      current_user = auth_object.current_user
 
-      if user.present?
-        workouts = user.workouts
+      if current_user == user_id.to_i
+        user = User.find( user_id ) rescue nil
 
-        workouts.each do | workout |
-          exercises = workout.exercises
+        if user.present?
+          workouts = user.workouts
+
+          workouts.each do | workout |
+            exercises = workout.exercises
+          end
+
+          render_result(
+            workouts,
+            {
+              name: 'workouts',
+              type_name: 'workout',
+              count: workouts.count,
+              include: 'exercises'
+            }
+          )
+        else
+          render_error(
+            {
+              type: 'not_found_error',
+              status_code: '404',
+              message: 'User with that user_id could not be found.'
+            }
+          )
         end
-
-        render_result(
-          workouts,
-          {
-            name: 'workouts',
-            type_name: 'workout',
-            count: workouts.count,
-            include: 'exercises'
-          }
-        )
       else
         render_error(
           {
-            type: 'not_found_error',
-            status_code: '404',
-            message: 'User with that user_id could not be found.'
+            type: 'unauthorized_error',
+            status_code: '401',
+            message: 'User not permitted to perform this action.'
           }
         )
       end
@@ -155,16 +168,6 @@ class WorkoutsController < ApplicationController
   end
 
   private
-
-  def add_workout_exercises( workout )
-    exercises_params = workout_params.delete( :exercises )
-
-    exercises_params.each do | exercise |
-      WorkoutExercise.create(
-        workout_id: workout.id, exercise_id: exercise, user_id: workout_params[ :user_id ]
-      )
-    end
-  end
 
   def workout_params
     params.require( :workout ).permit(

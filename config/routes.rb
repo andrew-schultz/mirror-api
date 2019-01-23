@@ -9,6 +9,9 @@ Rails.application.routes.draw do
   post '/users/:id',            to: 'users#update',
                                 as: 'users_update'
 
+  post '/login',                to: 'users#login',
+                                as: 'users_login'
+
   get '/workouts/:id',          to: 'workouts#read',
                                 as: 'workouts_read'
 
